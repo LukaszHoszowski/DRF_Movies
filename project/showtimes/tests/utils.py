@@ -1,40 +1,36 @@
 from random import sample, randint, choice
 from faker import Faker
 
-from movielist.models import Person, Movie
-
+from showtimes.models import Cinema, Screening
 
 faker = Faker("pl_PL")
 
 
-def random_person():
+def random_cinema():
     """Return a random Person object from db."""
-    people = Person.objects.all()
-    return choice(people)
+    cinema = Cinema.objects.all()
+    return choice(cinema)
 
 
-def fake_movie_data():
+def fake_cinema_data():
     """Generate a dict of movie data
 
     The format is compatible with serializers (`Person` relations
     represented by names).
     """
-    movie_data = {
-        "title": f"{faker.job()} {faker.first_name()}",
-        "description": faker.sentence(),
-        "year": int(faker.year()),
-        "director": random_person().name,
+    cinema_data = {
+        "name": f"{faker.automotive()}",
+        "city": faker.city(),
     }
-    people = Person.objects.all()
+    cinema = Cinema.objects.all()
     actors = sample(list(people), randint(1, len(people)))
-    actor_names = [a.name for a in actors]
     movie_data["actors"] = actor_names
     return movie_data
 
 
-def find_person_by_name(name):
+def find_cinema_by_name(name):
     """Return the first `Person` object that matches `name`."""
-    return Person.objects.filter(name=name).first()
+    return Cinema.objects.filter(name=name).first()
 
 
 def create_fake_movie():
@@ -46,4 +42,3 @@ def create_fake_movie():
     new_movie = Movie.objects.create(**movie_data)
     for actor in actors:
         new_movie.actors.add(find_person_by_name(actor))
-
