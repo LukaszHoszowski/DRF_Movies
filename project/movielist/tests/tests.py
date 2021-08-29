@@ -1,6 +1,7 @@
 import pytest
 
 from movielist.models import Movie, Person
+from showtimes.models import Cinema
 from .utils import fake_movie_data, random_person
 
 
@@ -28,6 +29,9 @@ def test_get_movie_list(client, set_up):
     assert Movie.objects.count() == len(response.data)
 
 
+
+
+
 @pytest.mark.django_db
 def test_get_movie_detail(client, set_up):
     movie = Movie.objects.first()
@@ -35,6 +39,16 @@ def test_get_movie_detail(client, set_up):
 
     assert response.status_code == 200
     for field in ("title", "year", "description", "director", "actors"):
+        assert field in response.data
+
+
+@pytest.mark.django_db
+def test_get_cinema_detail(client, set_up):
+    cinema = Cinema.objects.first()
+    response = client.get(f"/cinemas/{cinema.id}/", {}, format='json')
+
+    assert response.status_code == 200
+    for field in ("name", "city", "movies"):
         assert field in response.data
 
 

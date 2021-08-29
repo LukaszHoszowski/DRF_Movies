@@ -1,64 +1,122 @@
 import pytest
+import pytz
+from faker import Faker
 
-from movielist.models import Movie, Person
-from .utils import fake_movie_data, random_person
+from moviebase.settings import TIME_ZONE
+from movielist.models import Movie
+from .utils import fake_cinema_data
+from showtimes.models import Cinema, Screening
+
+faker = Faker("pl_PL")
+TZ = pytz.timezone(TIME_ZONE)
 
 
 @pytest.mark.django_db
-def test_post_movie(client, set_up):
-    movies_before = Movie.objects.count()
-    new_movie = fake_movie_data()
-    response = client.post("/movies/", new_movie, format='json')
+def test_add_cinema(client, set_up):
+    cinemas_count = Cinema.objects.count()
+    new_cinema = fake_cinema_data()
+    response = client.post("/cinemas/", new_cinema, format='json')
     assert response.status_code == 201
-    assert Movie.objects.count() == movies_before + 1
-    for key, value in new_movie.items():
+    assert Cinema.objects.count() == cinemas_count + 1
+    for key, value in new_cinema.items():
         assert key in response.data
-        if isinstance(value, list):
-            # Compare contents regardless of their order
-            assert len(response.data[key]) == len(value)
-        else:
-            assert response.data[key] == value
+        assert response.data[key] == value
 
 
 @pytest.mark.django_db
-def test_get_movie_list(client, set_up):
-    response = client.get("/movies/", {}, format='json')
+def test_get_cinema_list(client, set_up):
+    response = client.get("/cinemas/", {}, format='json')
 
     assert response.status_code == 200
-    assert Movie.objects.count() == len(response.data)
+    assert Cinema.objects.count() == len(response.data)
 
 
 @pytest.mark.django_db
-def test_get_movie_detail(client, set_up):
-    movie = Movie.objects.first()
-    response = client.get(f"/movies/{movie.id}/", {}, format='json')
+def test_get_cinema_detail(client, set_up):
+    cinema = Cinema.objects.first()
+    response = client.get(f"/cinemas/{cinema.id}/", {}, format='json')
 
     assert response.status_code == 200
-    for field in ("title", "year", "description", "director", "actors"):
+    for field in ("name", "city", "movies"):
         assert field in response.data
 
 
 @pytest.mark.django_db
-def test_delete_movie(client, set_up):
-    movie = Movie.objects.first()
-    response = client.delete(f"/movies/{movie.id}/", {}, format='json')
+def test_delete_cinema(client, set_up):
+    cinema = Cinema.objects.first()
+    response = client.delete(f"/cinemas/{cinema.id}/", {}, format='json')
     assert response.status_code == 204
-    movie_ids = [movie.id for movie in Movie.objects.all()]
-    assert movie.id not in movie_ids
+    cinemas_ids = [cinema.id for cinema in Cinema.objects.all()]
+    assert cinema.id not in cinemas_ids
 
 
 @pytest.mark.django_db
-def test_update_movie(client, set_up):
-    movie = Movie.objects.first()
-    response = client.get(f"/movies/{movie.id}/", {}, format='json')
-    movie_data = response.data
-    new_year = 3
-    movie_data["year"] = new_year
-    new_actors = [random_person().name]
-    movie_data["actors"] = new_actors
-    response = client.patch(f"/movies/{movie.id}/", movie_data, format='json')
+def test_update_cinema(client, set_up):
+    cinema = Cinema.objects.first()
+    response = client.get(f"/cinemas/{cinema.id}/", {}, format='json')
+    cinema_data = response.data
+    new_name = "DCF"
+    cinema_data["name"] = new_name
+    response = client.patch(f"/cinemas/{cinema.id}/", cinema_data, format='json')
     assert response.status_code == 200
-    movie_obj = Movie.objects.get(id=movie.id)
-    assert movie_obj.year == new_year
-    db_actor_names = [actor.name for actor in movie_obj.actors.all()]
-    assert len(db_actor_names) == len(new_actors)
+    cinema_obj = Cinema.objects.get(id=cinema.id)
+    assert cinema_obj.name == new_name
+
+
+@pytest.mark.django_db
+def test_add_screening(client, set_up):
+    screenings_count = Screening.objects.count()
+    new_screening_data = {
+        "cinema": Cinema.objects.first().name,
+        "movie": Movie.objects.first().title,
+        "date": faker.date_time(tzinfo=TZ).isoformat()
+
+    }
+    response = client.post("/screenings/", new_screening_data, format='json')
+    assert response.status_code == 201
+    assert Screening.objects.count() == screenings_count + 1
+
+    new_screening_data["date"] = new_screening_data["date"].replace('+00:00', 'Z')
+    for key, value in new_screening_data.items():
+        assert key in response.data
+        assert response.data[key] == value
+
+
+@pytest.mark.django_db
+def test_get_screening_list(client, set_up):
+    response = client.get("/screenings/", {}, format='json')
+
+    assert response.status_code == 200
+    assert Screening.objects.count() == len(response.data)
+
+
+@pytest.mark.django_db
+def test_get_screening_detail(client, set_up):
+    screening = Screening.objects.first()
+    response = client.get(f"/screenings/{screening.id}/", {}, format='json')
+
+    assert response.status_code == 200
+    for field in ('movie', 'cinema', 'date'):
+        assert field in response.data
+
+
+@pytest.mark.django_db
+def test_delete_screening(client, set_up):
+    screening = Screening.objects.first()
+    response = client.delete(f"/screenings/{screening.id}/", {}, format='json')
+    assert response.status_code == 204
+    screenings_ids = [screening.id for screening in Screening.objects.all()]
+    assert screening.id not in screenings_ids
+
+
+@pytest.mark.django_db
+def test_update_screening(client, set_up):
+    screening = Screening.objects.first()
+    response = client.get(f"/screenings/{screening.id}/", {}, format='json')
+    screening_data = response.data
+    new_cinema = Cinema.objects.last()
+    screening_data["cinema"] = new_cinema.name
+    response = client.patch(f"/screenings/{screening.id}/", screening_data, format='json')
+    assert response.status_code == 200
+    screening_obj = Screening.objects.get(id=screening.id)
+    assert screening_obj.cinema == new_cinema
