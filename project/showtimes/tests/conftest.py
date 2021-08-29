@@ -4,8 +4,8 @@ import sys
 import pytest
 from rest_framework.test import APIClient
 
-from showtimes.models import Cinema
-from .utils import faker, create_fake_cinema
+from movielist.models import Person
+from .utils import faker, create_fake_movie
 
 sys.path.append(os.path.dirname(__file__))
 
@@ -19,6 +19,6 @@ def client():
 @pytest.fixture
 def set_up():
     for _ in range(5):
-        Cinema.objects.create(name=faker.name())
+        Person.objects.create(name=faker.name())
     for _ in range(3):
-        create_fake_cinema()
+        create_fake_movie()

@@ -1,5 +1,5 @@
-from movielist.models import Movie
-from movielist.serializers import MovieSerializer
+from movielist.models import Movie, Person
+from movielist.serializers import MovieSerializer, PersonSerializer
 from rest_framework import generics
 
 
@@ -13,3 +13,11 @@ class MovieView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MovieSerializer
 
 
+class PersonListView(generics.ListCreateAPIView):
+    queryset = Person.objects.all()
+    serializer_class = PersonSerializer
+
+
+class PersonView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Person.objects.all()
+    serializer_class = PersonSerializer
