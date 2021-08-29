@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from showtimes.models import Cinema
+
+from movielist.models import Movie
+from showtimes.models import Cinema, Screening
 
 
 class CinemaSerializer(serializers.ModelSerializer):
@@ -8,3 +10,12 @@ class CinemaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cinema
         fields = ['name', 'city', 'movies']
+
+
+class ScreeningSerializer(serializers.ModelSerializer):
+    cinema = serializers.SlugRelatedField(slug_field='name', queryset=Cinema.objects.all())
+    movies = serializers.SlugRelatedField(slug_field='title', queryset=Movie.objects.all())
+
+    class Meta:
+        model = Screening
+        fields = ['movie', 'cinema', 'date']
